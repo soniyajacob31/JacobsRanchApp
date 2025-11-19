@@ -2,16 +2,17 @@
 //  JacobsRanchAppApp.swift
 //  JacobsRanchApp
 //
-//  Created by Soniya Jacob on 5/22/25.
-//
 
 import SwiftUI
 
 @main
 struct JacobsRanchAppApp: App {
+    @StateObject private var boardingInfo = BoardingInfo()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SplashScreenView()
+                .environmentObject(boardingInfo)
         }
     }
 }
