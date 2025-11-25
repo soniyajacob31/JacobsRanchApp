@@ -67,7 +67,7 @@ struct ContentView: View {
             Spacer()
         }
         .padding(.vertical, 20)
-        .navigationBarBackButtonHidden(true) // 👈 Hide back button here
+        .navigationBarBackButtonHidden(true) 
     }
 }
 

@@ -3,45 +3,108 @@
 //  JacobsRanchApp
 //
 
-import SwiftUI
 import Foundation
+import Supabase
 
-class HorsesViewModel: ObservableObject {
+@MainActor
+final class HorsesViewModel: ObservableObject {
     @Published var horses: [Horse] = []
     @Published var finishedLoading = false
 
-    // TEMP: No backend yet
-    private var userId: String? {
-        return "local-user-id"
+    private let client: SupabaseClient
+
+    init(client: SupabaseClient) {
+        self.client = client
     }
 
-    init() {
-        loadHorses()
-    }
+    
+    // LOAD ALL HORSES FOR USER
+    func loadHorses(userId: String) async {
+        do {
+            let response = try await client
+                .from("horses")
+                .select()
+                .eq("user_id", value: userId)
+                .order("id", ascending: true)
+                .execute()
 
-    func addHorse() {
-        horses.append(Horse())
-        saveHorses()
-    }
-
-    func removeHorse(at offsets: IndexSet) {
-        horses.remove(atOffsets: offsets)
-        saveHorses()
-    }
-
-    func saveHorses() {
-        // TEMP: No backend — store locally for now
-        let data = horses.map { $0.toDictionary() }
-        UserDefaults.standard.set(data, forKey: "horses")
-    }
-
-    func loadHorses() {
-        if let saved = UserDefaults.standard.array(forKey: "horses") as? [[String: Any]] {
-            self.horses = saved.map { Horse.fromDictionary($0) }
-        } else {
-            self.horses = [Horse()]  // default one horse
+            let data = try JSONDecoder().decode([Horse].self, from: response.data)
+            self.horses = data
+        } catch {
+            print("ERROR loading horses:", error)
         }
-        
-        self.finishedLoading = true
+
+        finishedLoading = true
+    }
+
+    // ADD EMPTY HORSE
+    func addHorse(userId: String) async {
+        let newHorse = Horse(userId: userId)
+
+        let payload: [String: AnyEncodable] = [
+            "user_id": AnyEncodable(value: userId),
+            "name": AnyEncodable(value: ""),
+            "owners": AnyEncodable(value: ""),
+            "owner_contact": AnyEncodable(value: ""),
+            "emergency_contact": AnyEncodable(value: ""),
+            "vet_contact": AnyEncodable(value: ""),
+            "stall_number": AnyEncodable(value: nil as Int?)
+        ]
+
+        do {
+            let response = try await client
+                .from("horses")
+                .insert(payload)
+                .select()
+                .single()
+                .execute()
+
+            let created = try JSONDecoder().decode(Horse.self, from: response.data)
+            horses.append(created)
+
+        } catch {
+            print("ERROR creating horse:", error)
+        }
+    }
+
+    // UPDATE HORSE FIELD
+    func saveHorse(_ horse: Horse) async {
+        guard let id = horse.id else { return }
+
+        let payload: [String: AnyEncodable] = [
+            "name": AnyEncodable(value: horse.name),
+            "owners": AnyEncodable(value: horse.owners),
+            "owner_contact": AnyEncodable(value: horse.ownerContact),
+            "emergency_contact": AnyEncodable(value: horse.emergencyContact),
+            "vet_contact": AnyEncodable(value: horse.vetContact),
+            "stall_number": AnyEncodable(value: horse.stallNumber)
+        ]
+
+        do {
+            _ = try await client
+                .from("horses")
+                .update(payload)
+                .eq("id", value: id)
+                .execute()
+
+        } catch {
+            print("ERROR updating horse:", error)
+        }
+    }
+
+    // DELETE HORSE
+    func deleteHorse(id: Int) async {
+        do {
+            _ = try await client
+                .from("horses")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+
+            horses.removeAll { $0.id == id }
+
+        } catch {
+            print("ERROR deleting horse:", error)
+        }
     }
 }

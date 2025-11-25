@@ -4,22 +4,27 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
-    @State private var rememberMe = false
     @State private var showPassword = false
     @State private var showAlert = false
     @State private var alertMessage = ""
-    @AppStorage("isLoggedIn") private var isLoggedIn = false
     @State private var navigateToHome = false
+
+    @AppStorage("isLoggedIn") private var isLoggedIn = false
+
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.supabase) var supabase: SupabaseClient
     @EnvironmentObject private var boardingInfo: BoardingInfo
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
+
+                // Custom back button (blue)
                 HStack {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
@@ -40,7 +45,7 @@ struct LoginView: View {
                     .bold()
                     .padding(.bottom, 30)
 
-                // Email Field
+                // EMAIL
                 HStack {
                     Image(systemName: "envelope").foregroundColor(.gray)
                     TextField("Enter your email", text: $email)
@@ -52,17 +57,19 @@ struct LoginView: View {
                 .background(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.5)))
                 .padding(.horizontal)
 
-                // Password Field
+                // PASSWORD
                 HStack {
                     Image(systemName: "lock").foregroundColor(.gray)
+
                     Group {
                         if showPassword {
                             TextField("Enter your password", text: $password)
+                                .autocapitalization(.none)
                         } else {
                             SecureField("Enter your password", text: $password)
+                                .autocapitalization(.none)
                         }
                     }
-                    .autocapitalization(.none)
 
                     Button { showPassword.toggle() } label: {
                         Image(systemName: showPassword ? "eye.slash" : "eye")
@@ -73,30 +80,14 @@ struct LoginView: View {
                 .background(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.5)))
                 .padding(.horizontal)
 
-                // Remember me + Forgot password
-                HStack {
-                    Button { rememberMe.toggle() } label: {
-                        Image(systemName: rememberMe ? "checkmark.square.fill" : "square")
-                            .font(.title3)
-                            .foregroundColor(rememberMe ? .black : .gray)
-                    }
-                    Text("Remember me").font(.footnote)
-
-                    Spacer()
-
-                    NavigationLink("Forgot password?", destination: ResetPasswordView())
-                        .font(.footnote)
-                        .foregroundColor(Color("DarkBlue"))
-                }
-                .padding(.horizontal)
-
-                // Navigate to home after login
                 NavigationLink(
-                    destination: HomeView().navigationBarBackButtonHidden(true),
+                    "",
+                    destination: HomeView()
+                        .navigationBarBackButtonHidden(true),
                     isActive: $navigateToHome
-                ) { EmptyView() }
+                )
 
-                // Sign-In Button
+                // SIGN IN BUTTON
                 Button(action: signIn) {
                     Text("SIGN IN")
                         .font(.headline)
@@ -108,9 +99,12 @@ struct LoginView: View {
 
                 Spacer()
 
-                // Create account link
+                // Register link
                 HStack {
-                    Text("Not a member?").font(.footnote).foregroundColor(.secondary)
+                    Text("Not a member?")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+
                     NavigationLink("Create a new account", destination: RegisterView())
                         .font(.footnote)
                         .foregroundColor(Color("DarkBlue"))
@@ -119,7 +113,7 @@ struct LoginView: View {
                 .padding(.bottom, 20)
             }
             .padding(.top, 20)
-            .navigationBarBackButtonHidden(true)
+            .navigationBarBackButtonHidden(true)     // <-- FIXED HERE
             .alert("Login Failed", isPresented: $showAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -128,7 +122,6 @@ struct LoginView: View {
         }
     }
 
-    // TEMPORARY LOGIN (until Supabase)
     private func signIn() {
         guard !email.isEmpty, !password.isEmpty else {
             alertMessage = "Please enter both email and password."
@@ -136,26 +129,24 @@ struct LoginView: View {
             return
         }
 
-        // TEMP: Simulate successful login
-        if password.count < 3 {
-            alertMessage = "Invalid email or password."
-            showAlert = true
-            return
-        }
+        Task {
+            do {
+                try await supabase.auth.signIn(email: email, password: password)
 
-        // Set default horse count
-        boardingInfo.horseCount = 1
+                isLoggedIn = true
 
-        isLoggedIn = true
-        navigateToHome = true
-    }
-}
+                // Load profile into BoardingInfo
+                if let session = try? await supabase.auth.session {
+                    let userId = session.user.id.uuidString
+                    await boardingInfo.loadProfile(from: supabase, userId: userId)
+                }
 
-struct LoginView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            LoginView()
-                .environmentObject(BoardingInfo())
+                navigateToHome = true
+
+            } catch {
+                alertMessage = "Invalid email or password."
+                showAlert = true
+            }
         }
     }
 }

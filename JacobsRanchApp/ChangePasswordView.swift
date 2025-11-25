@@ -3,159 +3,189 @@
 //  JacobsRanchApp
 //
 
-
 import SwiftUI
+import Supabase
 
 struct ChangePasswordView: View {
-    // MARK: State
+
     @State private var currentPassword = ""
-    @State private var newPassword     = ""
+    @State private var newPassword = ""
     @State private var confirmPassword = ""
-    @State private var showCurrent     = false
-    @State private var showNew         = false
-    @State private var showConfirm     = false
+
+    @State private var showCurrent = false
+    @State private var showNew = false
+    @State private var showConfirm = false
+
+    @State private var showSuccessBanner = false
+    @State private var showError = false
+    @State private var errorMessage = ""
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.supabase) private var supabase: SupabaseClient
 
-    // computed validation
-    private var passwordsMatch: Bool {
-        !newPassword.isEmpty && newPassword == confirmPassword
+    var passwordsMatch: Bool {
+        !newPassword.isEmpty &&
+        newPassword == confirmPassword &&
+        newPassword.count >= 6
     }
 
     var body: some View {
         VStack(spacing: 20) {
-            // ← Back chevron
+
+            // Back button
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                         .font(.title3)
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color("DarkBlue"))
                 }
                 Spacer()
             }
             .padding(.horizontal)
 
-            // Logo
             Image("LogoHorses")
                 .resizable()
                 .scaledToFit()
                 .frame(height: 130)
 
-            // Heading
             Text("Change Password")
                 .font(.title)
                 .bold()
-                .padding(.bottom, 30)
+                .padding(.bottom, 20)
 
-            // Current password
-            HStack {
-                Image(systemName: "lock")
-                    .foregroundColor(.gray)
+            // CURRENT PASSWORD FIELD
+            passwordField(
+                title: "Current Password",
+                text: $currentPassword,
+                show: $showCurrent
+            )
+
+            // NEW PASSWORD FIELD
+            passwordField(
+                title: "New Password",
+                text: $newPassword,
+                show: $showNew
+            )
+
+            // CONFIRM PASSWORD
+            passwordField(
+                title: "Confirm Password",
+                text: $confirmPassword,
+                show: $showConfirm
+            )
+            .overlay(
                 Group {
-                    if showCurrent {
-                        TextField("Current password", text: $currentPassword)
-                    } else {
-                        SecureField("Current password", text: $currentPassword)
+                    if !confirmPassword.isEmpty && !passwordsMatch {
+                        Text("Passwords do not match")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.top, 50)
                     }
-                }
-                Button { showCurrent.toggle() } label: {
-                    Image(systemName: showCurrent ? "eye.slash" : "eye")
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.5)))
-            .padding(.horizontal)
+                },
+                alignment: .bottomLeading
+            )
 
-            // New password
-            HStack {
-                Image(systemName: "lock.rotation")
-                    .foregroundColor(.gray)
-                Group {
-                    if showNew {
-                        TextField("New password", text: $newPassword)
-                    } else {
-                        SecureField("New password", text: $newPassword)
-                    }
-                }
-                Button { showNew.toggle() } label: {
-                    Image(systemName: showNew ? "eye.slash" : "eye")
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.5)))
-            .padding(.horizontal)
-
-            // Confirm password
-            HStack {
-                Image(systemName: "lock.shield")
-                    .foregroundColor(.gray)
-                Group {
-                    if showConfirm {
-                        TextField("Confirm password", text: $confirmPassword)
-                    } else {
-                        SecureField("Confirm password", text: $confirmPassword)
-                    }
-                }
-                Button { showConfirm.toggle() } label: {
-                    Image(systemName: showConfirm ? "eye.slash" : "eye")
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 8)
-                            .stroke(
-                                // red border if mismatch
-                                (!confirmPassword.isEmpty && !passwordsMatch)
-                                ? Color.red
-                                : Color.gray.opacity(0.5),
-                                lineWidth: 1
-                            ))
-            .padding(.horizontal)
-
-            // Inline error message
-            if !confirmPassword.isEmpty && !passwordsMatch {
-                Text("Passwords do not match")
-                    .font(.footnote)
-                    .foregroundColor(.red)
-                    .padding(.horizontal)
-                    .transition(.opacity)
-            }
-
-            // SAVE button
+            // SAVE BUTTON
             Button {
-                // TODO: call your password-change API
-                dismiss()
+                Task { await handlePasswordChange() }
             } label: {
                 Text("SAVE")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, minHeight: 50)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color("DarkBlue"))
-                            .shadow(color: Color.black.opacity(0.3),
-                                    radius: 4, x: 0, y: 2)
-                    )
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color("DarkBlue")))
             }
             .padding(.horizontal)
-            .disabled(!passwordsMatch)   // only enabled when they match
+            .disabled(!passwordsMatch)
+            .opacity(passwordsMatch ? 1 : 0.4)
 
             Spacer()
+
+            if showSuccessBanner {
+                VStack {
+                    Text("Password Updated!")
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
-        .padding(.top, 20)
-        .animation(.easeInOut, value: passwordsMatch)
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
         .navigationBarBackButtonHidden(true)
     }
-}
 
-struct ChangePasswordView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            ChangePasswordView()
+    // MARK: - Password FIELD UI
+    @ViewBuilder
+    func passwordField(title: String, text: Binding<String>, show: Binding<Bool>) -> some View {
+        HStack {
+            Image(systemName: "lock")
+                .foregroundColor(.gray)
+
+            Group {
+                if show.wrappedValue {
+                    TextField(title, text: text)
+                } else {
+                    SecureField(title, text: text)
+                }
+            }
+
+            Button { show.wrappedValue.toggle() } label: {
+                Image(systemName: show.wrappedValue ? "eye.slash" : "eye")
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.5))
+        )
+        .padding(.horizontal)
+    }
+
+    // MARK: - SUPABASE LOGIC
+    @MainActor
+    private func handlePasswordChange() async {
+        guard let session = try? await supabase.auth.session else {
+            errorMessage = "Session expired. Please log in again."
+            showError = true
+            return
+        }
+
+        let email = session.user.email ?? ""
+
+        // 1. REAUTH user with current password
+        do {
+            _ = try await supabase.auth.signIn(
+                email: email,
+                password: currentPassword
+            )
+        } catch {
+            errorMessage = "Current password is incorrect."
+            showError = true
+            return
+        }
+
+        // 2. UPDATE password
+        do {
+            try await supabase.auth.update(
+                user: UserAttributes(password: newPassword)
+            )
+
+            withAnimation { showSuccessBanner = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                withAnimation { showSuccessBanner = false }
+            }
+
+        } catch {
+            errorMessage = "Failed to update password."
+            showError = true
         }
     }
 }

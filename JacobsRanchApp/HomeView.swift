@@ -4,38 +4,44 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct HomeView: View {
-    private let totalStalls = 14
 
     @EnvironmentObject private var boardingInfo: BoardingInfo
+    @Environment(\.supabase) private var supabase
+
     @AppStorage("hasCompletedProfile") private var hasCompletedProfile = false
     @State private var showProfilePrompt = false
 
-    @StateObject private var horsesVM = HorsesViewModel()
-
-    private var availableStalls: Int {
-        max(0, totalStalls - boardingInfo.horseCount)
-    }
+    @EnvironmentObject private var horsesVM: HorsesViewModel
 
     var body: some View {
         VStack(spacing: 24) {
+
+            // Logo
             Image("LogoHorses")
                 .resizable()
                 .scaledToFit()
                 .frame(height: 130)
                 .padding(.top, 50)
 
+            // Available stalls
             HStack {
                 Text("Available Stalls")
                     .font(.headline)
+                    .foregroundColor(Color("DarkBlue"))
+
                 Spacer()
-                Text("\(availableStalls)")
+
+                Text("\(boardingInfo.availableStalls)")
                     .font(.headline)
+                    .foregroundColor(Color("DarkBlue"))
             }
             .padding(.horizontal, 30)
             .padding(.top, 20)
 
+            // Menu rows
             VStack(spacing: 0) {
                 MenuRow(title: "Stalls") {
                     StallsView()
@@ -46,21 +52,19 @@ struct HomeView: View {
                 MenuRow(title: "Forms") {
                     FormsView()
                 }
+
                 MenuRow(title: "Profile") {
                     ProfileView()
-                        .environmentObject(boardingInfo)
-                        .environmentObject(horsesVM)
                 }
             }
             .padding(.horizontal, 30)
 
             Spacer()
 
+            // Help button
             HStack {
                 Spacer()
-                Button {
-                    // TODO: Help
-                } label: {
+                Button {} label: {
                     Image(systemName: "questionmark.circle.fill")
                         .font(.title2)
                 }
@@ -69,21 +73,20 @@ struct HomeView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
 
+        .task {
+            await boardingInfo.loadAvailableStalls(from: supabase)
+        }
+
         .onChange(of: horsesVM.finishedLoading) { finished in
             if finished && !hasCompletedProfile {
-                if horsesVM.horses.count == 1,
-                   horsesVM.horses.first?.name.isEmpty == true {
+                if horsesVM.horses.count == 1 &&
+                    horsesVM.horses.first?.name.isEmpty == true {
                     showProfilePrompt = true
                 }
             }
         }
-
         .alert("Tell us about your horse(s)!", isPresented: $showProfilePrompt) {
-            Button("Got it") {
-                hasCompletedProfile = true
-            }
-        } message: {
-            Text("Head to your Profile and add your horse’s info.")
+            Button("Got it") { hasCompletedProfile = true }
         }
     }
 }
@@ -96,6 +99,7 @@ struct MenuRow<Destination: View>: View {
         NavigationLink(destination: destination()) {
             HStack {
                 Text(title)
+                    .font(.headline)
                     .foregroundColor(.primary)
                 Spacer()
                 Image(systemName: "chevron.right")
