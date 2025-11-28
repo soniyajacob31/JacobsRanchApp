@@ -60,21 +60,21 @@ No more searching through paperwork, texts, or binders. Everything is available 
 ### Start the Horse Identification Backend
 - Open Terminal
 - Navigate to the backend folder:
-  cd ~/Downloads/Xcode/jacobsranch/horseidentitybackend
+  - cd ~/Downloads/Xcode/jacobsranch/horseidentitybackend
 - Start the FastAPI server:
-  uvicorn main:app --reload
+  - uvicorn main:app --reload
 - When successful, you will see:
-  Uvicorn running on http://127.0.0.1:8000
-  Application startup complete.
+  - Uvicorn running on http://127.0.0.1:8000
+  - Application startup complete.
 - Verify the backend by visiting:
-  http://127.0.0.1:8000/docs
-The backend must be running for the Horse Identification feature to work.
+  - http://127.0.0.1:8000/docs
+- The backend must be running for the Horse Identification feature to work.
 
 ### Run the iOS App
 - Open the Jacob's Ranch Xcode project
 - Select an iPhone simulator
 - Press Run in Xcode
-The app will automatically connect to Supabase and the backend.
+- The app will automatically connect to Supabase and the backend.
 
 ## Tech Stack
 
