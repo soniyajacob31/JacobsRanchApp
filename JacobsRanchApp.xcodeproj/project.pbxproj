@@ -35,6 +35,7 @@
 		E73DCD192DDFB8F900FE60A7 /* Jacob's Ranch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Jacob's Ranch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73DCD262DDFB8FB00FE60A7 /* JacobsRanchAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JacobsRanchAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73DCD302DDFB8FB00FE60A7 /* JacobsRanchAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JacobsRanchAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7E48C612EDA0B6000D21C06 /* Jacob-s-Ranch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Jacob-s-Ranch-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +89,7 @@
 		E73DCD102DDFB8F900FE60A7 = {
 			isa = PBXGroup;
 			children = (
+				E7E48C612EDA0B6000D21C06 /* Jacob-s-Ranch-Info.plist */,
 				E73DCD1B2DDFB8F900FE60A7 /* JacobsRanchApp */,
 				E73DCD292DDFB8FB00FE60A7 /* JacobsRanchAppTests */,
 				E73DCD332DDFB8FB00FE60A7 /* JacobsRanchAppUITests */,
@@ -421,6 +423,8 @@
 				DEVELOPMENT_TEAM = BW5A77737M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Jacob-s-Ranch-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Used to identify horses by camera\n";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -449,6 +453,8 @@
 				DEVELOPMENT_TEAM = BW5A77737M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Jacob-s-Ranch-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Used to identify horses by camera\n";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

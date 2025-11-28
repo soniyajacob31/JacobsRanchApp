@@ -52,7 +52,9 @@ struct HomeView: View {
                 MenuRow(title: "Forms") {
                     FormsView()
                 }
-
+                MenuRow(title: "Identify Horse") {
+                        IdentifyHorseView()
+                }
                 MenuRow(title: "Profile") {
                     ProfileView()
                 }
@@ -61,15 +63,6 @@ struct HomeView: View {
 
             Spacer()
 
-            // Help button
-            HStack {
-                Spacer()
-                Button {} label: {
-                    Image(systemName: "questionmark.circle.fill")
-                        .font(.title2)
-                }
-                .padding()
-            }
         }
         .navigationBarTitleDisplayMode(.inline)
 

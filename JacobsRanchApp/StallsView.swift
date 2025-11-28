@@ -6,7 +6,7 @@
 import SwiftUI
 import Supabase
 
-// MARK: — Horse Model for Supabase
+// MARK: — Horse Model
 
 struct StallHorse: Decodable, Identifiable {
     let id: Int
@@ -40,10 +40,8 @@ class StallsViewModel: ObservableObject {
                 .select()
                 .execute()
 
-            let data = response.data
-            let decoded = try JSONDecoder().decode([StallHorse].self, from: data)
-
-            self.horses = decoded
+            let decoded = try JSONDecoder().decode([StallHorse].self, from: response.data)
+            horses = decoded
         } catch {
             print("Failed to load horses:", error)
         }
@@ -55,21 +53,19 @@ class StallsViewModel: ObservableObject {
     }
 }
 
-// MARK: — Dummy placeholder VM
-
-/// SwiftUI requires @StateObject to ALWAYS initialize with a concrete type.
-/// We never use this,  real VM loads after Supabase client is available.
-final class StallsViewModelPlaceholder: ObservableObject {}
-
-
 // MARK: — Main View
 
 struct StallsView: View {
-    @Environment(\.supabase) var supabase
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var vm: StallsViewModel
 
-    @StateObject private var placeholderVM = StallsViewModelPlaceholder()
-    @State private var vm: StallsViewModel? = nil
+    init() {
+        _vm = StateObject(
+            wrappedValue: StallsViewModel(
+                client: JacobsRanchAppApp.supabaseClient
+            )
+        )
+    }
 
     private let horizontalPadding: CGFloat = 16
     private let corridorWidth: CGFloat     = 40
@@ -91,32 +87,26 @@ struct StallsView: View {
             .padding()
             .background(Color.white)
 
-            Group {
-                if let vm = vm {
-                    content(vm)
-                } else {
-                    ProgressView()
-                        .task {
-                            self.vm = StallsViewModel(client: supabase)
-                        }
-                }
+            if vm.loading {
+                ProgressView()
+            } else {
+                content(vm)
             }
         }
         .navigationBarHidden(true)
     }
-
 
     // MARK: — Main Layout
 
     private func content(_ vm: StallsViewModel) -> some View {
         GeometryReader { geo in
             let totalWidth = geo.size.width
-            let cellWidth = (totalWidth - horizontalPadding*2 - corridorWidth) / 2
+            let rawWidth = (totalWidth - horizontalPadding*2 - corridorWidth) / 2
+            let cellWidth = max(rawWidth, 1)   
 
             ScrollView {
                 VStack(spacing: 0) {
 
-                    // Indoor Arena Header
                     Text("Indoor Arena")
                         .font(.title3.bold())
                         .frame(width: totalWidth - horizontalPadding*2, height: 100)
@@ -130,7 +120,6 @@ struct StallsView: View {
                         )
                         .padding(.top, 20)
 
-                    // First Row
                     stallRow(vm: vm,
                              left: Array(1...4),
                              right: [14, 13, 12, 11],
@@ -139,7 +128,6 @@ struct StallsView: View {
 
                     Spacer().frame(height: interRowGap)
 
-                    // Second Row
                     stallRow(vm: vm,
                              left: Array(5...7),
                              right: [10, 9, 8],
@@ -153,7 +141,6 @@ struct StallsView: View {
         }
     }
 
-
     // MARK: — Row Generator
 
     private func stallRow(vm: StallsViewModel,
@@ -164,7 +151,6 @@ struct StallsView: View {
 
         HStack(spacing: 0) {
 
-            // Left Column
             VStack(spacing: 0) {
                 ForEach(left, id: \.self) { stallNum in
                     NavigationLink {
@@ -181,7 +167,6 @@ struct StallsView: View {
 
             Spacer().frame(width: corridorWidth)
 
-            // Right Column
             VStack(spacing: 0) {
                 ForEach(right, id: \.self) { stallNum in
                     NavigationLink {
@@ -198,7 +183,6 @@ struct StallsView: View {
         }
     }
 }
-
 
 // MARK: — Cell UI
 
@@ -221,8 +205,8 @@ struct StallCell: View {
     }
 }
 
-
 // MARK: — Detail View
+
 struct StallDetailView: View {
     let horse: StallHorse?
     let stallNumber: Int
@@ -231,7 +215,6 @@ struct StallDetailView: View {
     var body: some View {
         VStack(spacing: 20) {
 
-            // Back button
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
@@ -243,7 +226,6 @@ struct StallDetailView: View {
             .padding(.horizontal)
             .padding(.top, 8)
 
-            // Centered Stall title
             HStack {
                 Spacer()
                 Text("Stall \(stallNumber)")
@@ -252,7 +234,6 @@ struct StallDetailView: View {
                 Spacer()
             }
 
-            // Pretty white card
             VStack(spacing: 14) {
                 readOnlyRow("Horse Name", horse?.name)
                 Divider()
@@ -276,7 +257,6 @@ struct StallDetailView: View {
             )
             .padding(.horizontal)
 
-            // Done button
             Button {
                 dismiss()
             } label: {
